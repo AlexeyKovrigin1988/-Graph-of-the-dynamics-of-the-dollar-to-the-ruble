@@ -1,0 +1,160 @@
+<?php
+
+$this->title = 'My Yii Application';
+
+$startDate = isset($_GET['start_date']) ? $_GET['start_date'] : null; // 2022-04-01
+$endDate = isset($_GET['end_date']) ? $_GET['end_date'] : null;
+
+//Пересобираем url в зависимости от введённого периода и формируем массив данных
+function parseData($startDate, $endDate){
+    $startDate = (new \DateTime($startDate))->format('d/m/Y');
+    $endDate = (new \DateTime($endDate))->format('d/m/Y');
+
+    $get_params = http_build_query([
+        'date_req1' => $startDate,
+        'date_req2' => $endDate,
+        'VAL_NM_RQ' => 'R01235'
+    ]);
+
+
+    $url = 'https://www.cbr.ru/scripts/XML_dynamic.asp?' . $get_params;
+    $root = new SimpleXMLElement($url, null, true);
+
+    $data = [];
+
+    foreach ($root->Record as $value) {
+        $date = (string)$value['Date'];
+        $money = (string)$value->Value;
+        $money = str_replace(',', '.', $money);
+        $money = (double)$money;
+        $data[$date] = $money;
+    };
+    return $data;
+};
+
+//Проверяем введён ли период и если ввёден вызываем функцию
+if($startDate !== null and $endDate !== null){
+    $data = parseData($startDate, $endDate);
+}
+else {
+    $data = [];
+}
+
+?>
+
+<style>
+    .highcharts-figure,
+    .highcharts-data-table table {
+        min-width: 310px;
+        max-width: 800px;
+        margin: 1em auto;
+    }
+
+    .highcharts-data-table table {
+        font-family: Verdana, sans-serif;
+        border-collapse: collapse;
+        border: 1px solid #ebebeb;
+        margin: 10px auto;
+        text-align: center;
+        width: 100%;
+        max-width: 500px;
+    }
+
+    .highcharts-data-table caption {
+        padding: 1em 0;
+        font-size: 1.2em;
+        color: #555;
+    }
+
+    .highcharts-data-table th {
+        font-weight: 600;
+        padding: 0.5em;
+    }
+
+    .highcharts-data-table td,
+    .highcharts-data-table th,
+    .highcharts-data-table caption {
+        padding: 0.5em;
+    }
+
+    .highcharts-data-table thead tr,
+    .highcharts-data-table tr:nth-child(even) {
+        background: #f8f8f8;
+    }
+
+    .highcharts-data-table tr:hover {
+        background: #f1f7ff;
+    }
+</style>
+
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<script src="https://code.highcharts.com/modules/series-label.js"></script>
+<script src="https://code.highcharts.com/modules/exporting.js"></script>
+<script src="https://code.highcharts.com/modules/export-data.js"></script>
+
+<form method="get">
+    <label for="start_date">
+        Начало периода
+    </label>
+    <input required type="date" id="start_date" name="start_date">
+    <br>
+    <label for="end_date">
+        Конец периода
+    </label>
+    <input required type="date" id="end_date" name="end_date">
+    <br>
+    <button type="submit">
+        Отправить
+    </button>
+</form>
+
+<figure class="highcharts-figure">
+    <div id="container"></div>
+</figure>
+
+<?php
+
+// Если данные отсутствуют то график не отрисовываем
+if (count($data)>0){
+
+?>
+<script>
+    Highcharts.chart('container', {
+        chart: {
+            type: 'spline'
+        },
+        title: {
+            text: 'График курса доллара к рублю'
+        },
+        xAxis: {
+            categories: <?php echo json_encode(array_keys($data)) ?>
+        },
+        yAxis: {
+            title: {
+                text: 'Рубли'
+            },
+        },
+        tooltip: {
+            crosshairs: true,
+            shared: true
+        },
+        plotOptions: {
+            spline: {
+                marker: {
+                    radius: 4,
+                    lineColor: '#666666',
+                    lineWidth: 1
+                }
+            }
+        },
+        series: [{
+            name: 'Курс доллара',
+            marker: {
+                symbol: 'square'
+            },
+            data: <?php echo json_encode(array_values($data)) ?>
+
+        }]
+    });
+</script>
+<?php } ?>
