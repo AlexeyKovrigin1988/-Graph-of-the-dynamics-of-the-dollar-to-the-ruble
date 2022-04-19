@@ -1,6 +1,5 @@
 <?php
-
-$this->title = 'My Yii Application';
+$this->title = 'Graph of the dynamics of the dollar to the ruble';
 
 $startDate = isset($_GET['start_date']) ? $_GET['start_date'] : null; // 2022-04-01
 $endDate = isset($_GET['end_date']) ? $_GET['end_date'] : null;
@@ -16,12 +15,10 @@ function parseData($startDate, $endDate){
         'VAL_NM_RQ' => 'R01235'
     ]);
 
-
     $url = 'https://www.cbr.ru/scripts/XML_dynamic.asp?' . $get_params;
     $root = new SimpleXMLElement($url, null, true);
 
     $data = [];
-
     foreach ($root->Record as $value) {
         $date = (string)$value['Date'];
         $money = (string)$value->Value;
@@ -39,7 +36,6 @@ if($startDate !== null and $endDate !== null){
 else {
     $data = [];
 }
-
 ?>
 
 <style>
@@ -113,10 +109,8 @@ else {
 </figure>
 
 <?php
-
 // Если данные отсутствуют то график не отрисовываем
 if (count($data)>0){
-
 ?>
 <script>
     Highcharts.chart('container', {
@@ -153,7 +147,6 @@ if (count($data)>0){
                 symbol: 'square'
             },
             data: <?php echo json_encode(array_values($data)) ?>
-
         }]
     });
 </script>
